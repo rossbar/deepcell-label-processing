@@ -88,9 +88,11 @@ X = ((multiplexed_img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
 X = X[:, np.newaxis, :, :]
 
 # Get cell types from model config
+import utils
 model_config["cell_types"]
 # Ignore BACKGROUND category
-cell_types = model_config["cell_types"][1:]
+# cell_types = model_config["cell_types"][1:]
+cell_types = utils.make_empty_cell_types()
 # TODO: Add other categories for annotation (e.g. UNSURE)
 
 from raw_to_dcl import dcl_zip
