@@ -76,7 +76,7 @@ def raw_to_dcl(tile_x, tile_y, tile_center, ground_truth, marker_positivity, cla
     return X_processed, y_processed, cell_types, channels
 
 
-def dcl_zip(X, y, cell_types, channels):
+def dcl_zip(X, y, cell_types, channels, fname="project.zip"):
     """Zips up X, y, and cellTypes.json into a DCL zip file.
 
     Args:
@@ -119,15 +119,15 @@ def dcl_zip(X, y, cell_types, channels):
         #                   )
         # print(x.text)
 
-    with open(args.output_file, 'wb') as f:
+    with open(fname, 'wb') as f:
         f.write(mf.getvalue())
-        print('Done!')
+    print('Done!')
 
 
 def main(args):
     X, y, cell_types, kept_channels = raw_to_dcl(
         args.tile_x, args.tile_y, args.tile_center, args.ground_truth, args.marker_positivity, args.clahe, args.raw_file_path, args.metadata, args.config)
-    dcl_zip(X, y, cell_types, kept_channels)
+    dcl_zip(X, y, cell_types, kept_channels, args.output_file)
 
 
 if __name__ == '__main__':
