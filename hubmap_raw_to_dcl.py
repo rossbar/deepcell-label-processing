@@ -93,10 +93,5 @@ model_config["cell_types"]
 cell_types = model_config["cell_types"][1:]
 # TODO: Add other categories for annotation (e.g. UNSURE)
 
-import io
-import zipfile
-from tifffile import TiffWriter
-import json
-
-# Get dcl_zip
-# dcl_zip(X, y, cell_types, channels)
+from raw_to_dcl import dcl_zip
+dcl_zip(X, y, cell_types, channels)
