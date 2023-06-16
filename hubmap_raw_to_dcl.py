@@ -1,11 +1,14 @@
 import yaml
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tff
 plt.ion()
 
+data_dir = Path("/data/large_intestine/HBM964.FPNH.767-59f7fa785f9dbd46f45758e22454e912")
+
 # Get the channel names for the dataset
-with open("channelnames.txt", "r") as fh:
+with open(data_dir / "channelnames.txt", "r") as fh:
     data_chnames = [l.rstrip() for l in fh.readlines()]
     
 # Create some mappings from channel names to img index
@@ -47,7 +50,7 @@ model_ch_to_idx["PANCK"] = data_ch_to_idx_upper["CYTOKERATIN"]
 model_ch_to_idx["Hoechst1"] = data_ch_to_idx["Hoechst1"]
 
 # Load a sample image
-image_fname = "processed/input_tiles/reg001_X02_Y07.tif"
+image_fname = data_dir / "processed/input_tiles/reg001_X02_Y07.tif"
 img = tff.imread(image_fname)
 
 # Reshape from (cyc, ch) to (cyc * ch)
