@@ -15,7 +15,7 @@ import click
     default=None,
     help="Location to save the deepcell label project. Defaults to data-dir"
 )
-def hubmap_hickey_to_dcl(data_dir, image_path, output_path):
+def hubmap_hickey_cli(data_dir, image_path, output_path):
     # Inpute validation
     if data_dir is None:
         raise ValueError("Specify path to raw hubmap dataset with --data-dir")
@@ -23,6 +23,39 @@ def hubmap_hickey_to_dcl(data_dir, image_path, output_path):
         raise ValueError(
             "Specify relative path to an image, e.g. processed/reg001_X01_Y01.tif"
         )
+    hubmap_hickey_to_dcl(data_dir, image_path, output_path)
+
+
+def hubmap_hickey_to_dcl(data_dir, image_path, output_path=None):
+    """Create a deepcell label job from raw HubMAP CODEX data.
+
+    Parameters
+    ----------
+    data_dir : pathlib.Path
+        Path to top-level directory for a hubmap dataset which
+        must contain:
+        1. A ``processed/`` folder containing the .tifs and
+        2. A ``channelnames.txt`` which maps the image indices to
+           the corresponding protein marker.
+
+        For example: ``/data/large_intestine/HBM???-<hash>``
+
+    image_path : pathlib.Path
+        Relative path from `data_dir` to the .tif file which will
+        be used to create the DCL project.
+
+        For exmaple: ``processed/bestFocus/reg00?_X0?_Y0?.tif``
+
+    output_path : pathlib.Path, optional
+        Location to store the ``.zip`` file containing the DCL project.
+        If not specified, the project will be saved in the same directory
+        as the input image used to create it.
+        This location must exist; if it does not, an exception is raised
+        prompting you to create it.
+
+        For example: ``$HOME/hubmap_to_dcl/``
+
+    """
     # Path to data, e.g. /data/large_intestine/HBM...
     data_dir = Path(data_dir)
     # Rel path from data_dir to img, e.g. /processed/bestFocus/reg001...
@@ -146,4 +179,4 @@ def hubmap_hickey_to_dcl(data_dir, image_path, output_path):
     dcl_zip(X, y, cell_types, channels, fname=out_path)
 
 if __name__ == "__main__":
-    hubmap_hickey_to_dcl()
+    hubmap_hickey_cli()
