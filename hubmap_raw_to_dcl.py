@@ -1,102 +1,128 @@
+import os
 import yaml
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 import tifffile as tff
-plt.ion()
+import click
 
-data_dir = Path("/data/large_intestine/HBM964.FPNH.767-59f7fa785f9dbd46f45758e22454e912")
+@click.command()
+@click.option("--data-dir", default=None, help="Path to hubmap data")
+@click.option(
+    "--image-path", default=None, help="Path to multiplex image, relative to data_dir"
+)
+def hubmap_hickey_to_dcl(data_dir, image_path):
+    # Inpute validation
+    if data_dir is None:
+        raise ValueError("Specify path to raw hubmap dataset with --data-dir")
+    if image_path is None:
+        raise ValueError(
+            "Specify relative path to an image, e.g. processed/reg001_X01_Y01.tif"
+        )
+    data_dir = Path(data_dir)
 
-# Get the channel names for the dataset
-with open(data_dir / "channelnames.txt", "r") as fh:
-    data_chnames = [l.rstrip() for l in fh.readlines()]
-    
-# Create some mappings from channel names to img index
-data_ch_to_idx = {name: idx for idx, name in enumerate(data_chnames)}
-data_ch_to_idx_upper = {k.upper(): v for k, v in data_ch_to_idx.items()}
-data_chset = set(data_ch_to_idx_upper)
+    # Get the channel names for the dataset
+    with open(data_dir / "channelnames.txt", "r") as fh:
+        data_chnames = [l.rstrip() for l in fh.readlines()]
 
-# Channels to drop from consideration from the raw data
-empties = [ch for ch in data_chnames if ch.upper().startswith("EMPTY")]
-blanks = [ch for ch in data_chnames if ch.upper().startswith("BLANK")]
-hoechsts = [ch for ch in data_chnames if ch.upper().startswith("HOECHST")]
-hoechsts_to_drop = hoechsts[1:]
-# Drop em
-for k in empties + blanks + hoechsts_to_drop:
-    data_ch_to_idx.pop(k)
-    
-with open("/home/administrator/repos/deepcelltypes-hubmap/model/config.yaml") as fh:
-    model_config = yaml.load(fh, yaml.Loader)
-    
-# Get model channel names
-model_chnames = model_config["channels"]
-model_chset = set(model_chnames)
+    # Create some mappings from channel names to img index
+    data_ch_to_idx = {name: idx for idx, name in enumerate(data_chnames)}
+    data_ch_to_idx_upper = {k.upper(): v for k, v in data_ch_to_idx.items()}
+    data_chset = set(data_ch_to_idx_upper)
 
-# Manually inspect the data and model channel sets
-model_chset & data_chset
-model_chset - data_chset
-data_chset - model_chset
+    # Channels to drop from consideration from the raw data
+    empties = [ch for ch in data_chnames if ch.upper().startswith("EMPTY")]
+    blanks = [ch for ch in data_chnames if ch.upper().startswith("BLANK")]
+    hoechsts = [ch for ch in data_chnames if ch.upper().startswith("HOECHST")]
+    hoechsts_to_drop = hoechsts[1:]
+    # Drop em
+    for k in empties + blanks + hoechsts_to_drop:
+        data_ch_to_idx.pop(k)
 
-# Create a mapping from model_channel to raw data image index
-# NOTE: the m_ch.upper() is necessary for CD49a -> CD49A
-model_ch_to_idx = {
-    m_ch: data_ch_to_idx_upper[m_ch.upper()]
-    for m_ch in model_chnames
-    if m_ch.upper() in data_ch_to_idx_upper
-}
-# A few manual additions: Hoechst1 for segmentation sanity check and
-# cytokeratin
-model_ch_to_idx["PANCK"] = data_ch_to_idx_upper["CYTOKERATIN"]
-model_ch_to_idx["Hoechst1"] = data_ch_to_idx["Hoechst1"]
+    with open("/home/administrator/repos/deepcelltypes-hubmap/model/config.yaml") as fh:
+        model_config = yaml.load(fh, yaml.Loader)
 
-# Load a sample image
-image_fname = data_dir / "processed/input_tiles/reg001_X02_Y07.tif"
-img = tff.imread(image_fname)
+    # Get model channel names
+    model_chnames = model_config["channels"]
+    model_chset = set(model_chnames)
 
-# Reshape from (cyc, ch) to (cyc * ch)
-img = img.reshape((img.shape[0] * img.shape[1], img.shape[2], img.shape[3]))
-# Visually inspect the first (best?) nuclear channel
-plt.imshow(img[0, ...])
+    # Manually inspect the data and model channel sets
+    model_chset & data_chset
+    model_chset - data_chset
+    data_chset - model_chset
 
-# Generate mask with mesmer
-from deepcell.applications import Mesmer
-app = Mesmer()
+    # Create a mapping from model_channel to raw data image index
+    # NOTE: the m_ch.upper() is necessary for CD49a -> CD49A
+    model_ch_to_idx = {
+        m_ch: data_ch_to_idx_upper[m_ch.upper()]
+        for m_ch in model_chnames
+        if m_ch.upper() in data_ch_to_idx_upper
+    }
+    # A few manual additions: Hoechst1 and cytokeratin for segmentation
+    # sanity check
+    model_ch_to_idx["PANCK"] = data_ch_to_idx_upper["CYTOKERATIN"]
+    model_ch_to_idx["Hoechst1"] = data_ch_to_idx["Hoechst1"]
 
-# Create input image for mesmer using Hoechst and Cytokeratin
-# as nuclear and whole cell channels, respectively
-segmentation_input = np.stack(
-    [
-        img[model_ch_to_idx["Hoechst1"]],
-        img[model_ch_to_idx["PANCK"]],
-    ],
-    axis=-1
-)[np.newaxis, ...]
+    # Load multiplexed image
+    image_fname = data_dir / image_path
+    img = tff.imread(image_fname)
 
-# Note that the pixel size appears to be 0.377 for all the Hickey data
-mask = app.predict(segmentation_input, image_mpp=0.377)
+    # Reshape from (cyc, ch) to (cyc * ch)
+    # NOTE: Assumes data has shape (cycle, ch, Y, X) where
+    # cycle is usually 24ish and ch is always 4.
+    # NOTE: if `z-plane` is included in the shape, this will bork,
+    # so for now make sure to only use input images where the "best"
+    # z-plane has already been selected
+    img = img.reshape((img.shape[0] * img.shape[1], img.shape[2], img.shape[3]))
 
-# Mask should be int32 and have shape (1, 1, y, x) to match
-# the multiplexed image
-y = mask.transpose(3, 0, 1, 2).astype(np.int32)
+    # Generate mask with mesmer
+    from deepcell.applications import Mesmer
+    app = Mesmer()
 
-# Create the multplexed image from the model/channel mapping
-multiplexed_img = img[list(model_ch_to_idx.values())]
-channels = list(model_ch_to_idx)
+    # Create input image for mesmer using Hoechst and Cytokeratin
+    # as nuclear and whole cell channels, respectively
+    segmentation_input = np.stack(
+        [
+            img[model_ch_to_idx["Hoechst1"]],
+            img[model_ch_to_idx["PANCK"]] + img[model_ch_to_idx["VIMENTIN"]],
+        ],
+        axis=-1
+    )[np.newaxis, ...]
 
-# Normalize to range 0-255 and convert to uint8
-chmax = multiplexed_img.max(axis=(1, 2), keepdims=True)
-chmin = multiplexed_img.min(axis=(1, 2), keepdims=True)
-X = ((multiplexed_img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
-# Add dummy dimension to get X into CTYX format
-X = X[:, np.newaxis, :, :]
+    # Note that the pixel size appears to be 0.377 for all the Hickey data
+    mask = app.predict(segmentation_input, image_mpp=0.377)
 
-# Get cell types from model config
-import utils
-model_config["cell_types"]
-# Ignore BACKGROUND category
-# cell_types = model_config["cell_types"][1:]
-cell_types = utils.make_empty_cell_types()
-# TODO: Add other categories for annotation (e.g. UNSURE)
+    # Mask should be int32 and have shape (1, 1, y, x) to match
+    # the multiplexed image
+    y = mask.transpose(3, 0, 1, 2).astype(np.int32)
+    print(f"Number of cells: {y.max()}")
 
-from raw_to_dcl import dcl_zip
-dcl_zip(X, y, cell_types, channels)
+    # Create the multplexed image from the model/channel mapping
+    multiplexed_img = img[list(model_ch_to_idx.values())]
+    channels = list(model_ch_to_idx)
+
+    # Normalize to range 0-255 and convert to uint8
+    chmax = multiplexed_img.max(axis=(1, 2), keepdims=True)
+    chmin = multiplexed_img.min(axis=(1, 2), keepdims=True)
+    X = ((multiplexed_img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
+    # Add dummy dimension to get X into CTYX format
+    X = X[:, np.newaxis, :, :]
+
+    # Get cell types from model config
+    import utils
+    model_config["cell_types"]
+    # Ignore BACKGROUND category
+    # cell_types = model_config["cell_types"][1:]
+    # TODO: Modify make_empty_cell_types to read from model configuration
+    # instead of `constants` module
+    cell_types = utils.make_empty_cell_types()
+    # TODO: Add other categories for annotation (e.g. UNSURE)
+
+    # Prepare output filename
+    out_fname = os.path.splitext(image_path)[0] + "_project.zip"
+    out_path = data_dir / out_fname
+
+    from raw_to_dcl import dcl_zip
+    dcl_zip(X, y, cell_types, channels, fname=out_path)
+
+if __name__ == "__main__":
+    hubmap_hickey_to_dcl()
