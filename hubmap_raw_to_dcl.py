@@ -10,7 +10,12 @@ import click
 @click.option(
     "--image-path", default=None, help="Path to multiplex image, relative to data_dir"
 )
-def hubmap_hickey_to_dcl(data_dir, image_path):
+@click.option(
+    "--output-path",
+    default=None,
+    help="Location to save the deepcell label project. Defaults to data-dir"
+)
+def hubmap_hickey_to_dcl(data_dir, image_path, output_path):
     # Inpute validation
     if data_dir is None:
         raise ValueError("Specify path to raw hubmap dataset with --data-dir")
@@ -18,7 +23,27 @@ def hubmap_hickey_to_dcl(data_dir, image_path):
         raise ValueError(
             "Specify relative path to an image, e.g. processed/reg001_X01_Y01.tif"
         )
+    # Path to data, e.g. /data/large_intestine/HBM...
     data_dir = Path(data_dir)
+    # Rel path from data_dir to img, e.g. /processed/bestFocus/reg001...
+    image_path = Path(image_path)
+    image_fname = image_path.name
+    out_fname = os.path.splitext(image_fname)[0] + "_project.zip"
+    # Determine output path given data-dir and img-path
+    if output_path is None:
+        output_path = data_dir / "/".join(image_path.parts[:-1])
+    else:
+        output_path = Path(output_path)
+    # Validate output path
+    if not output_path.exists():
+        raise ValueError(
+            (
+                f"\nOutput path:\n\t {output_path}\ndoes not exist. "
+                "Create it and try again."
+            )
+        )
+    # Prepare output filename
+    out_path = output_path / out_fname
 
     # Get the channel names for the dataset
     with open(data_dir / "channelnames.txt", "r") as fh:
@@ -63,8 +88,7 @@ def hubmap_hickey_to_dcl(data_dir, image_path):
     model_ch_to_idx["Hoechst1"] = data_ch_to_idx["Hoechst1"]
 
     # Load multiplexed image
-    image_fname = data_dir / image_path
-    img = tff.imread(image_fname)
+    img = tff.imread(data_dir / image_path)
 
     # Reshape from (cyc, ch) to (cyc * ch)
     # NOTE: Assumes data has shape (cycle, ch, Y, X) where
@@ -117,9 +141,6 @@ def hubmap_hickey_to_dcl(data_dir, image_path):
     cell_types = utils.make_empty_cell_types()
     # TODO: Add other categories for annotation (e.g. UNSURE)
 
-    # Prepare output filename
-    out_fname = os.path.splitext(image_path)[0] + "_project.zip"
-    out_path = data_dir / out_fname
 
     from raw_to_dcl import dcl_zip
     dcl_zip(X, y, cell_types, channels, fname=out_path)
