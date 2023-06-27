@@ -151,7 +151,8 @@ def hubmap_hickey_to_dcl(data_dir, image_path, output_path=None):
     # Mask should be int32 and have shape (1, 1, y, x) to match
     # the multiplexed image
     y = mask.transpose(3, 0, 1, 2).astype(np.int32)
-    print(f"Number of cells: {y.max()}")
+    number_of_cells = y.max()
+    print(f"Number of cells in {image_fname}: {number_of_cells}")
 
     # Create the multplexed image from the model/channel mapping
     multiplexed_img = img[list(model_ch_to_idx.values())]
@@ -177,6 +178,8 @@ def hubmap_hickey_to_dcl(data_dir, image_path, output_path=None):
 
     from raw_to_dcl import dcl_zip
     dcl_zip(X, y, cell_types, channels, fname=out_path)
+
+    return number_of_cells
 
 if __name__ == "__main__":
     hubmap_hickey_cli()
