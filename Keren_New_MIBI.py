@@ -20,6 +20,8 @@ def single_registry_image_to_dcl_project(data_path, fname):
     data_path = Path(data_path)
     outpath = Path("/home/administrator/data-registry_dcl_outputs/")
     outpath /= "/".join(data_path.parts[-2:])
+    # Create output path
+    Path.mkdir(outpath, parents=True, exist_ok=True)
     out_fname = os.path.splitext(fname)[0] + "_mpm_project.zip"
 
     # Load data
