@@ -22,12 +22,28 @@ idx_to_ch = {
     ch["index"]: ch["target"] for ch in
     metadata["meta"]["sample"]["channels"]
 }
+channels = list(idx_to_ch.values())
+
 
 # Load image and cast to float
 img = data["X"].astype(float)
 mask = data["y"]
 print(f"Image shape: {img.shape}")
 print(f"Number of cells: {mask.max()}")
+
+# Filter out empty channels
+empty_ch_mask = img.sum(axis=(0, 1, 2)) == 0
+if np.any(empty_ch_mask):
+    channels = np.asarray(channels)
+    print(
+        (
+            f"The following channels are empty and will be dropped:\n"
+            f"\t{channels[empty_ch_mask]}"
+        )
+    )
+    channels = channels[~empty_ch_mask].tolist()
+    img = img[..., ~empty_ch_mask]
+
 # Normalize and convert to uint8
 chmax = img.max(axis=(1, 2), keepdims=True)
 chmin = img.min(axis=(1, 2), keepdims=True)
@@ -37,8 +53,7 @@ X = ((img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
 X = X.transpose((3, 0, 1, 2))
 y = mask.transpose((0, 3, 1, 2))
 
-# Channels and corresponding categories for marker positivity
-channels = list(idx_to_ch.values())
+# Marker-positivity "cell types"
 cell_types = utils.make_empty_marker_positivity(channels)
 
 dcl_zip(X, y, cell_types, channels, fname=outpath / out_fname)
