@@ -25,6 +25,9 @@ idx_to_ch = {
 
 # Load image and cast to float
 img = data["X"].astype(float)
+mask = data["y"]
+print(f"Image shape: {img.shape}")
+print(f"Number of cells: {mask.max()}")
 # Normalize and convert to uint8
 chmax = img.max(axis=(1, 2), keepdims=True)
 chmin = img.min(axis=(1, 2), keepdims=True)
@@ -32,7 +35,7 @@ X = ((img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
 # ometiff is very picky about dimensions
 # TODO: figure out why
 X = X.transpose((3, 0, 1, 2))
-y = data["y"].transpose((0, 3, 1, 2))
+y = mask.transpose((0, 3, 1, 2))
 
 # Channels and corresponding categories for marker positivity
 channels = list(idx_to_ch.values())
