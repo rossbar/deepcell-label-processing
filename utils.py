@@ -79,10 +79,15 @@ def parse_predictions(y_pred_celltype, cell_indices):
     return cell_types_json
 
 
-def make_empty_cell_types():
-    """ Return cellTypes.json with master cell types list but no labels """
+def make_empty_cell_types(cell_types_list=None):
+    """
+    Return cellTypes.json with master cell types list but no labels.
+
+    Cell types are determined from `cell_types_list` if provided, else uses
+    constans.MASTER_TYPES"""
     cell_types_json = []
-    for i in range(1, len(constants.MASTER_TYPES) + 1):
+    categories = constant.MASTER_TYPES if cell_types_list is None else cell_types_list
+    for i in range(1, len(categories) + 1):
         cell_types_json.append({'id': i, 'cells': [], 'color': constants.COLOR_MAP[i - 1],
                                'name': constants.MASTER_TYPES[i - 1], 'feature': 0})
     return cell_types_json
