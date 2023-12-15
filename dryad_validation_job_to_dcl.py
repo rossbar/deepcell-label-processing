@@ -7,16 +7,16 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 # Params
-dryad_path = Path.home() / "Downloads/BE_Tonsil_l3_dryad.csv"
-unpacked_from_dcl = Path.home() / "Downloads/yV1ol2Y4V95L"
-original_zip = unpacked_from_dcl / "yV1ol2Y4V95L.zip"
+dryad_path = "/data/dryad_annotated_data/raw/BE_Tonsil_l3_dryad.csv"
+unpacked_from_dcl = Path.home() / "dcl_caitlin_evals/RuAVfHPzY_Rh"
+original_zip = unpacked_from_dcl / "RuAVfHPzY_Rh.zip"
 donor = "B004"
-tissue = "Barretts Esophagus"
+tissue = "tonsil"
 region = 1
-ymin = 3528
-ymax = 4032
-xmin = 3360
-xmax = 4032
+ymin = 3024
+ymax = 3528
+xmin = 4032
+xmax = 4704
 if tissue in {"tonsil", "Barretts Esophagus"}:
     ymin *= 2
     ymax *= 2
