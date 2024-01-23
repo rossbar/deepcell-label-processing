@@ -38,6 +38,7 @@ output_dir.mkdir(exist_ok=True, parents=True)
 # Multiplex img in memmap mode
 im = tff.memmap(data_dir / dataset / "drv_CX_19-001_thymus_CC2-C_NBF/processed_2020-02-06/stitched/reg001/src_CX_19-001_thymus_CC2-C_reg001.tif")
 im = im.reshape((im.shape[0] * im.shape[1], im.shape[2], im.shape[3]))
+print(im.shape)
 
 # Channel names capitalized
 with open(data_dir / dataset / "drv_CX_19-001_thymus_CC2-C_NBF/channelNames.txt") as fh:
