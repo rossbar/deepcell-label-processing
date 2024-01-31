@@ -53,14 +53,12 @@ assert len(data_chnames) == img.shape[0]
 
 # Sort marker channels alphabetically
 data_ch_to_idx = {name: idx for idx, name in enumerate(data_chnames)}
-data_ch_to_idx = dict(sorted(data_ch_to_idx.items()))
-ch_to_idx = {k: v for v, k in enumerate(data_ch_to_idx)}
 
 # Prepare segmentation input
 segmentation_input = np.stack(
     [
-        img[ch_to_idx["HOECHST 33342"]],
-        img[ch_to_idx["CD45"]],
+        img[data_ch_to_idx["HOECHST 33342"]],
+        img[data_ch_to_idx["CD45"]],
     ],
     axis=-1,
 )[np.newaxis, ...]
@@ -87,15 +85,13 @@ cell_types = make_empty_cell_types(ctlist)
 channels = list(data_ch_to_idx)
 
 # Original tiling scheme: 7x9 grid - 63 tiles total
-xstep = X.shape[2] // 14
-ystep = X.shape[3] + 1 // 14
-for i in range(0, X.shape[2], xstep):
-    for j in range(0, X.shape[3], ystep):
-        print(f"{i}:{i+xstep}, {j}:{j+ystep}")
+for (xmin, xmax) in itertools.pairwise(np.linspace(0, X.shape[2], 14).astype(int)):
+    for (ymin, ymax) in itertools.pairwise(np.linspace(0, X.shape[3], 14).astype(int)):
+        print(f"{xmin}:{xmax}, {ymin}:{ymax}")
         dcl_zip(
-            X[..., i:i+xstep, j:j+ystep],
-            y[..., i:i+xstep, j:j+ystep],
+            X[..., xmin:xmax, ymin:ymax],
+            y[..., xmin:xmax, ymin:ymax],
             cell_types,
             channels,
-            fname=output_dir / f"tile_{i}-{i+xstep}_{j}-{j+ystep}.zip"
+            fname=output_dir / f"tile_{xmin}-{xmax}_{ymin}-{ymax}.zip"
         )
