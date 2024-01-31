@@ -51,7 +51,7 @@ data_chnames = np.array(
 )
 assert len(data_chnames) == img.shape[0]
 
-# Sort marker channels alphabetically
+# Map marker names to channel indices
 data_ch_to_idx = {name: idx for idx, name in enumerate(data_chnames)}
 
 # Prepare segmentation input
@@ -72,6 +72,10 @@ y = mask.transpose(3, 0, 1, 2).astype(np.int32)
 chmax = img.max(axis=(1, 2), keepdims=True)
 chmin = img.min(axis=(1, 2), keepdims=True)
 X = ((img - chmin) / (chmax - chmin) * 255).astype(np.uint8)
+# Sort channels alphabetically
+data_ch_to_idx = dict(sorted(data_ch_to_idx.items()))
+X = X[np.array(list(data_ch_to_idx.values())), ...]
+# Add a dim for dcl
 X = X[:, np.newaxis, :, :]
 
 # Get cell types
