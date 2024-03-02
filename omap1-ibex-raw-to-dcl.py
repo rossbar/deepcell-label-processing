@@ -37,7 +37,7 @@ output_dir = Path.home() / f"dryad_dcl_outputs/omap1/lymphnode_ibex_automated"
 output_dir.mkdir(exist_ok=True, parents=True)
 
 # Multiplex img
-ims_data = ims(data_dir / dataset)
+ims_data = ims(data_dir / dataset)  # mpp = 0.16
 # Check square pixels
 assert ims_data.resolution[-2] == ims_data.resolution[-1]
 mpp = ims_data.resolution[-1]  # Pixel size, in microns (hopefully)

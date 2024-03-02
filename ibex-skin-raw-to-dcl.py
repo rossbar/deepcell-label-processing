@@ -40,7 +40,7 @@ output_dir.mkdir(exist_ok=True, parents=True)
 ims_data = ims(data_dir / dataset)
 # Check square pixels
 assert ims_data.resolution[-2] == ims_data.resolution[-1]
-mpp = ims_data.resolution[-1]  # Pixel size, in microns (hopefully)
+mpp = ims_data.resolution[-1]  # Pixel size, in microns (hopefully) 
 img = ims_data[0, :, 0, :, :]  # res, ch, time, x, y
 
 # Channel names capitalized
