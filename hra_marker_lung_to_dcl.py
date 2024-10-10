@@ -1,3 +1,5 @@
+import yaml
+import itertools
 import pandas as pd
 import napari
 import tifffile as tff
@@ -6,6 +8,25 @@ import numpy as np
 
 from raw_to_dcl import dcl_zip
 import constants
+
+def ravel_dict(d):
+    leafs = []
+    for k, v in d.items():
+        if v == {}:
+            leafs.append(k)
+        else:
+            leafs.extend(ravel_dict(v))
+    return leafs
+
+
+def make_empty_cell_types(ctlist):
+    """ Return cellTypes.json with master cell types list but no labels """
+    cell_types_json = []
+    colors = itertools.cycle(constants.COLOR_MAP)
+    for i, ct in enumerate(ctlist):
+        cell_types_json.append({'id': i+1, 'cells': [], 'color': next(colors),
+                               'name': ct, 'feature': 0})
+    return cell_types_json
 
 datapath = Path("/data2/lung-data-hra-pub")
 db_path = datapath / "D265-LLL-7A7-12/D265-LLL-7A7-12_cell_segm.csv"
@@ -60,8 +81,8 @@ cell_types = make_empty_cell_types(ctlist)
 channels = list(data_ch_to_idx)
 
 # Tile
-for (xmin, xmax) in itertools.pairwise(np.linspace(0, X.shape[2], 14).astype(int)):
-    for (ymin, ymax) in itertools.pairwise(np.linspace(0, X.shape[3], 14).astype(int)):
+for (xmin, xmax) in itertools.pairwise(np.linspace(0, X.shape[2], 9).astype(int)):
+    for (ymin, ymax) in itertools.pairwise(np.linspace(0, X.shape[3], 9).astype(int)):
         print(f"{xmin}:{xmax}, {ymin}:{ymax}")
         dcl_zip(
             X[..., xmin:xmax, ymin:ymax],
